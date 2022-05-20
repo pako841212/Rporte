@@ -1,0 +1,476 @@
+
+---
+title: 'Mercado de trabajo en México: 1er trimestre 2021'
+author: "Francisco Chávez"
+date: "4/5/2022"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+lang: es - ES
+---
+```{r}
+library(survey)
+library(foreign)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(ggblanket)
+```
+
+```{r, message=FALSE, warning=FALSE}
+
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# R Markdown
+
+Ceci est un document R Markdown. Markdown est une a simple syntaxe de format pour la création de HTML, PDF, et documents word Ms. Pour plus de détail sur l'utilisation de R Markdown allez sur <http://rmarkdown.rstudio.com>.
+
+
+
+# Antecedentes de la encuesta nacional de ocupación y empleo.
+
+La información estadística del mercado de trabajo en México tiene su origen en 1972 con la encuesta nacional en hogares (ENH),elaborada por el institu nacional de estadistica y geografía (INEGI), el objetivo de esta encuesta era contar con información demografica más que laboral. Con el fin de obtener informacion estadistica referente a la ocupacion se aplicó entre 1974 y 1984 la encuesta continua sobre ocupación (ECSO).
+
+Para el periodo entre 1983 y 2004 se aplica la encuesta naciona de empleo urbano (ENEU), esta encuesta es más afinada con más temas para el ananlisis del mercado de trabajo. A partir del año 2005 se sustituyó por la encuesta nacional de ocupación y empleo (ENOE).
+
+Esta infromación es generada por INEGI, con una frecuencia mensual y trimestral y se publica alrededor de 22 días hábiles después de terminar el mes. Los conceptos básicos respecto al mercado de trabajo mexicano estos se construyen en función de la población.
+
+La población económicamente activa (PEA),es la más importante delimitacion de la fuerza de trabajo y se obtiene de la poblacion total que esta en edad de trabajar y que al momento de aplicarse la encuesta ha realizado esfuerzos de busqueda.
+
+la población económicamente activa, se obtienen la población ocupada (empleada) y la población en desocupación abierta. la primera clasificacion comprende el subempleo.
+
+
+# Algunas cifras del mercado de trabajo según datos de ENOE hasta el 1er trimestre del 2021.
+
+La población total que completo la encuesta ENOE hasta el 1er trimestre del 2021 fue de `r poblacion_total` millones de personas, de los cuales `r poblacion_15_y_mas` millones de personas con 15 años o más. En lo que se refiere a la población económicamente activa (PEA) fue de `r PEA`millones de personas, a partir de la PEA es posible obetener a la población ocupada, hasta el periodo tratado, contabiliza `r PEA_ocupada` millones de personas. De esta población, se encuentra que `r PEA_sub_rem`millones de personas son trabajadores subordinados.
+
+#AGREGAR
+
+```{r}
+read.dbf("ENOEN_SDEMT121.dbf")
+sdem21<-read.dbf("ENOEN_SDEMT121.dbf")
+sdem21
+```
+
+```{r}
+sum(sdem21$FAC_TRI)
+sdem21$FAC_TRI
+```
+
+```{r}
+sdem21$EDA=as.numeric(as.character(sdem21$EDA))
+class(sdem21$EDA)
+```
+
+```{r}
+# Población total
+sdem21 %>% filter(R_DEF=="00", C_RES==1|C_RES==3)%>% summarise(POBLACION=sum(FAC_TRI))
+```
+
+```{r}
+# Población 15 años o más
+sdem21 %>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98)%>%
+             summarise(POBLACION_15omas=sum(FAC_TRI))
+
+```
+
+```{r}
+#PEA
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE1==1)%>%
+  summarise(PEA=sum(FAC_TRI))
+```
+```{r}
+#PEA_Hom
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,SEX==1,
+                    EDA>=15 & EDA<=98,
+                    CLASE1==1)%>%
+  summarise(PEA_H=sum(FAC_TRI))
+```
+```{r}
+#PEA_muj
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,SEX==2,
+                    EDA>=15 & EDA<=98,
+                    CLASE1==1)%>%
+  summarise(PEA_M=sum(FAC_TRI))
+```
+
+
+
+```{r}
+#PEA Ocupada
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1)%>%
+  summarise(PEA_Ocupada=sum(FAC_TRI))
+```
+
+```{r}
+#PEA_ocup_Hom
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    SEX==1,EDA>=15 & EDA<=98,
+                    CLASE2==1)%>%
+  summarise(PEA_Ocupada_H=sum(FAC_TRI))
+```
+```{r}
+#PEA_ocup_Muj
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    SEX==2,EDA>=15 & EDA<=98,
+                    CLASE2==1)%>%
+  summarise(PEA_Ocupada_M=sum(FAC_TRI))
+```
+```{r}
+#PEA subordinados y remunerados
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1,
+                    POS_OCU==1)%>%summarise(PEA_Subor=sum(FAC_TRI))
+```
+
+
+```{r}
+#PEA subordinados y remunerados_Hom
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    SEX==1,CLASE2==1,
+                    POS_OCU==1)%>%summarise(PEA_Subor_H=sum(FAC_TRI))
+```
+```{r}
+#PEA subordinados y remunerados_Muj
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    SEX==2,CLASE2==1,
+                    POS_OCU==1)%>%summarise(PEA_Subor_M=sum(FAC_TRI))
+```
+
+```{r}
+#PEA subordinados y remunerados_RAM
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==1,
+                    POS_OCU==1)%>%summarise(PEA_Subor_sector_primario=sum(FAC_TRI))
+```
+```{r}
+#PEA subordinada y remunerada_H_primario
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==1,
+                    SEX==1,POS_OCU==1)%>%summarise(PEA_Subor_sector_primario_H=sum(FAC_TRI))
+```
+
+```{r}
+#PEA subordinada y remunerada_M_primario
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==1,
+                    SEX==2,POS_OCU==1)%>%summarise(PEA_Subor_sector_primario_M=sum(FAC_TRI))
+```
+
+```{r}
+#PEA subordinados y remunerados_RAM
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==2,
+                    POS_OCU==1)%>%summarise(PEA_Subor_sector_secndario=sum(FAC_TRI))
+```
+
+```{r}
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==2,
+                    SEX==1,POS_OCU==1)%>%summarise(PEA_Subor_sector_secundario_H=sum(FAC_TRI))
+```
+
+```{r}
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==2,
+                    SEX==2,POS_OCU==1)%>%summarise(PEA_Subor_sector_secundario_M=sum(FAC_TRI))
+```
+
+```{r}
+#PEA subordinados y remunerados_RAM
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE2==1, RAMA_EST1==3,
+                    POS_OCU==1)%>%summarise(PEA_Subor_sector_terciario=sum(FAC_TRI))
+```
+```{r}
+#PEA subordinados y remunerados_RAM
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE1==1,
+                    CLASE2==1, RAMA_EST1==3,
+                    SEX==1,POS_OCU==1)%>%summarise(PEA_Subor_sector_terciario_H=sum(FAC_TRI))
+```
+```{r}
+#PEA subordinados y remunerados_RAM
+sdem21%>% filter(R_DEF=="00",
+                    C_RES==1|C_RES==3,
+                    EDA>=15 & EDA<=98,
+                    CLASE1==1,
+                    CLASE2==1, RAMA_EST1==3,
+                    SEX==2,POS_OCU==1)%>%summarise(PEA_Subor_sector_terciario_M=sum(FAC_TRI))
+```
+
+# La población ocupada por edad,por entidad, nivel de instruccion y años de escolarización formal en México.
+
+
+
+```{r}
+ocupados21=sdem21 %>% 
+  filter(CLASE2 == 1,
+         ING_X_HRS>0,
+         C_RES==1 | C_RES==3,
+         EDA>=15 & EDA<=98)%>%
+  select(FAC_TRI,EST_D_TRI, UPM,ING_X_HRS,INGOCUP,HRSOCUP, EDA, SEX,ENT, NIV_INS, ANIOS_ESC,RAMA_EST1, ING7C)
+
+```
+
+
+```{r}
+#Promedio de edad, años de escolarización y del nivel de instrucción
+mean(ocupados21$EDA)
+mean(ocupados21$ANIOS_ESC)
+mean(ocupados21$NIV_INS)
+```
+
+```{r}
+#Promedio de edad, años de escolarización y del nivel de instrucción, por sexo y entidad
+ocupados21%>%
+  group_by(SEX) %>% summarize(promedio = mean(EDA))
+ocupados21%>%
+  group_by(SEX, ENT) %>% summarize(promedio = mean(EDA))
+ocupados21%>%
+  group_by(SEX) %>% summarize(promedio = mean(ANIOS_ESC))
+ocupados21%>%
+  group_by(SEX, ENT) %>% summarize(promedio = mean(ANIOS_ESC))
+ocupados21%>%
+  group_by(SEX) %>% summarize(promedio = mean(NIV_INS))
+ocupados21%>%
+  group_by(SEX, ENT) %>% summarize(promedio = mean(NIV_INS))
+
+```
+
+
+# Remunariciones en el mercado de trabajo mexicano.
+
+
+```{r}
+library(survey)
+options(survey.lonely.psu="adjust")
+
+```
+
+```{r}
+ocupados21=sdem21 %>% 
+  filter(CLASE2 == 1,
+         ING_X_HRS>0,
+         C_RES==1 | C_RES==3,
+         EDA>=15 & EDA<=98)%>%
+  select(FAC_TRI,EST_D_TRI, UPM,ING_X_HRS,INGOCUP,HRSOCUP, EDA, SEX,ENT, NIV_INS, ANIOS_ESC,RAMA_EST1, ING7C)
+```
+
+
+```{r}
+ds_ocupados21<- svydesign(id = ~UPM, strata = ~EST_D_TRI, weights = ~FAC_TRI, nest=TRUE, data=ocupados21)
+```
+
+
+```{r}
+#Ingreso promedio por ocupación y por hora, y de las horas ocupadas
+mean(ocupados21$INGOCUP)
+mean(ocupados21$ING_X_HRS)
+mean(ocupados21$HRSOCUP)
+```
+
+```{r}
+#Edad, años de escolarización y nivel de instrucción promedio de la población ocupada
+
+mean(ocupados21$ANIOS_ESC)
+mean(ocupados21$NIV_INS)
+mean(ocupados21$EDA)
+```
+
+```{r}
+ocupados21 %>% group_by(SEX, ENT)%>% summarize(promedio = mean(INGOCUP))
+ocupados21 %>% group_by(SEX, ENT)%>% summarize(promedio = mean(ING_X_HRS))
+```
+
+```{r}
+
+ocupados21 %>% group_by(SEX, NIV_INS, ENT) %>% summarize(promedio = mean(INGOCUP))
+ocupados21 %>% group_by(SEX, NIV_INS, ENT) %>% summarize(promedio = mean(ING_X_HRS))
+```
+```{r}
+svymean(~INGOCUP, ds_ocupados21)
+confint(svymean(~INGOCUP, ds_ocupados21))
+```
+```{r}
+svyby(~INGOCUP,  by=~SEX,design=ds_ocupados21, svymean)
+confint(svyby(~INGOCUP, by=~SEX, design=ds_ocupados21, svymean))
+
+
+```
+```{r}
+svyby(~ING_X_HRS, by=~SEX, design=ds_ocupados21, svymean)
+confint(svyby(~ING_X_HRS, by=~SEX, design=ds_ocupados21, svymean))
+```
+```{r}
+svyby(~INGOCUP, by=~ENT,design=ds_ocupados21, svymean)
+svyby(~ING_X_HRS, by=~ENT,design=ds_ocupados21, svymean)
+```
+
+
+## Resumen de remuneraciones por ocupacion, por hora, por entidad, por nivel de instrucción y sexo
+### Para observar el nivel de instrucción vaya al documento generado en linea 325
+
+Para generalizar las siguientes cifras fue necesario especificar el diseño muestral y seleccionar la población con remuneración.Según los datos de la ENOE hasta el 1er trimestre del 2021 se calcula la siguiente información:
+
+Ingreso promedio por ocupación              $7113.8 pesos 
+                 por hora                   $46.2 pesos
+Ingreso promedio por ocupación y sexo       $7695.7 pesos
+                                            $6181.4 pesos
+                 por hora y sexo            $45.3   pesos
+                                            $47.7   pesos
+                                            
+Ingreso promedio por ocupación, por hora y por entidad de la frontera norte:
+
+02=$9157.56   $54.39
+26=$8219.07   $56.98
+08=$8759.21   $56.23
+05=$8406.97   $51.65
+19=$9971.88   $60.07
+28=$7518.84   $50.74
+
+Por mismas caracteristíca, más sexo:
+
+1.02=$7872.45   $55.37    2. 02=$10157.90   $58.05
+  26=$7252.27   $58.11       26=$9509.90    $60.74
+  08=$7536.84   $56.45       08=$9607.42    $58.30
+  05=$7506.28   $52.17       05=$9212.94    $53.11
+  19=$8506.51   $59.27       19=$10486.04   $59.42
+  28=$6751.46   $51.66       28=$8337.83    $48.40
+
+
+
+#La distribución de la población ocupada por salario mínimo
+
+```{r}
+#Salarios minimos
+ocupados21%>%filter(ING7C>=1 & ING7C<=2)%>%summarise(entre_1y2_sm=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=2 & ING7C<=3)%>%summarise(entre_2y3_sm=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=3 & ING7C<=5)%>%summarise(entre_3y5_sm=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=5)%>%summarise(mayor_5_sm=sum(FAC_TRI))
+```
+
+```{r}
+#Distribución de salarios minimos por sexo
+ocupados21%>%filter(ING7C>=1 & ING7C<=2,SEX==1)%>%summarise(entre_1y2_sm_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2,SEX==2)%>%summarise(entre_1y2_sm_M=sum(FAC_TRI))
+
+
+```
+
+```{r}
+ocupados21%>%filter(ING7C>=2 & ING7C<=3,SEX==1)%>%summarise(entre_2y3_sm_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=2 & ING7C<=3,SEX==2)%>%summarise(mayor_2y3_sm_M=sum(FAC_TRI))
+
+```
+
+```{r}
+ocupados21%>%filter(ING7C>=3 & ING7C<=5,SEX==1)%>%summarise(mayor_5_sm_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=3 & ING7C<=5,SEX==2)%>%summarise(mayor_5_sm_M=sum(FAC_TRI))
+```
+```{r}
+#Distribución de salarios minimos por nivel de instrucción
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==2)%>%summarise(entre_1y2_sm_2=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==3)%>%summarise(entre_1y2_sm_3=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==4)%>%summarise(entre_1y2_sm_4=sum(FAC_TRI))
+
+```
+```{r}
+#Distribución de salarios minimos por nivel de instrucción y sexo
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==2, SEX==1)%>%summarise(entre_1y2_sm_niv2ins_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==2, SEX==2)%>%summarise(entre_1y2_sm_niv2ins_M=sum(FAC_TRI))
+```
+```{r}
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==3, SEX==1)%>%summarise(entre_1y2_sm_niv3ins_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==3, SEX==2)%>%summarise(entre_1y2_sm_niv3ins_M=sum(FAC_TRI))
+```
+```{r}
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==4, SEX==1)%>%summarise(entre_1y2_sm_niv4ins_H=sum(FAC_TRI))
+ocupados21%>%filter(ING7C>=1 & ING7C<=2, NIV_INS==4, SEX==2)%>%summarise(entre_1y2_sm_niv4ins_M=sum(FAC_TRI))
+```
+
+# Estructura del mercado de trabajo en México:
+
+1.Desempleo según nivel de instrucción 
+2.Desempleo según tamaño de ciudad
+3.Tendencia salario mínimo real y tasa de desempleo
+4.Tasa de desempleo y empleo con desagregaciones:
+  .Sexo, nivel de instruccion, tipo de         ocupación, experiencia laboral y posición en el      trabajo, ademas de        series desestacionalizadas y de          tendencia
+5.Proporción de población que gana el salario minimo de la población ocupada
+
+
+## Including Plots
+
+```{r pressure, echo=FALSE}
+```
+
+```{r}
+installed.packages("ggplot2")
+
+```
+```{r}
+
+```
+
+
+
+```{r}
+hist(x=ocupados21$EDA)
+boxplot(ocupados21$EDA~ocupados21$SEX)
+
+
+```
+
+```{r}
+hist(x=ocupados21$HRSOCUP)
+boxplot(ocupados21$HRSOCUP~ocupados21$SEX)
+```
+
+
+```{r}
+boxplot(ocupados21$EDA~ocupados21$ENT)
+boxplot(ocupados21$HRSOCUP~ocupados21$SEX)
+
+```
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
